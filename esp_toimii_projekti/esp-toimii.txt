@@ -5,7 +5,7 @@
 
 // ===== WIFI =====
 const char* ssid     = "DNA-WIFI-2564";
-const char* password = "fh772031";
+const char* password = "asdf";
 
 // ===== NTP =====
 const char* ntpServer = "pool.ntp.org";
