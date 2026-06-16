@@ -1,0 +1,87 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <time.h>
+
+// ===== WIFI =====
+const char* ssid     = "DNA-WIFI-2564";
+const char* password = "fh772031";
+
+// ===== NTP =====
+const char* ntpServer = "pool.ntp.org";
+const long  gmtOffset_sec = 3600*3;   // adjust to your timezone
+const int   daylightOffset_sec = 0;
+
+// ===== WEB =====
+WebServer server(80);
+
+// Format time
+String getTimeString() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    return "Time not ready";
+  }
+  char buf[32];
+  strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &timeinfo);
+  return String(buf);
+}
+
+// Root page
+void handleRoot() {
+  String page = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ESP32 Local Time</title>
+  <meta http-equiv="refresh" content="1">
+</head>
+<body>
+  <h2>ESP32 Local Time</h2>
+  <p>)rawliteral" + getTimeString() + R"rawliteral(</p>
+
+  <h2>Se toimii</h2>
+
+  <p>Sain viimeinkin tehtyä web-serverin Esp32:lla. Täytyi vain löytää oikea malli. Oikea malli oli YouTube-video "ESP32 Web Server Step by Step | Time, Temperature & Modern UI".</p>
+</body>
+</html>
+)rawliteral";
+
+  server.send(200, "text/html", page);
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  // WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi connected");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  // mDNS name -> myhome.local
+  if (!MDNS.begin("myhome")) {
+    Serial.println("mDNS failed");
+  } else {
+    Serial.println("mDNS started: http://myhome.local/");
+  }
+
+  // Time
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+
+  // Web server
+  server.on("/", handleRoot);
+  server.begin();
+
+  Serial.println("Web server started");
+}
+
+void loop() {
+  server.handleClient();
+}
